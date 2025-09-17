@@ -2,14 +2,24 @@ const express = require("express");
 const connectDB = require("./config/database");
 const app = express();
 require("dotenv").config();
+const cors = require("cors");
 
-app.use("/products", (req, res) => {
-  try {
-    return res.send({ message: "Products retrieved successfully" });
-  } catch (err) {
-    res.status(400).send("Something went wrong" + err.message);
-  }
-});
+const cookieParser = require("cookie-parser");
+
+app.use(
+  cors({
+    origin: "http://localhost:1234",
+    credentials: true,
+  })
+);
+app.use(express.json());
+app.use(cookieParser());
+
+const productRouter = require("./routes/product");
+const categoryRouter = require("./routes/category");
+
+app.use("/", productRouter);
+app.use("/", categoryRouter);
 
 connectDB()
   .then(() => {
