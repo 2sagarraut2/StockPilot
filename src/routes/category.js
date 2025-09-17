@@ -7,10 +7,17 @@ categoryRouter.post("/category/add", async (req, res) => {
   try {
     const { name, description } = req.body;
 
+    if (name.length < 3 || description.length < 3) {
+      return res.status(400).json({
+        error:
+          "Category name and description must each be at least 3 characters long.",
+      });
+    }
+
     // TODO: Check if category is unique
-    const existing_category = await Category.find({ name, active: true });
-    if (existing_category.length > 0) {
-      return res.status(400).json({ message: "Category already exists" });
+    const existingCategory = await Category.findOne({ name, active: true });
+    if (existingCategory) {
+      return res.status(409).json({ error: "Category already exists" });
     }
 
     const category = new Category({

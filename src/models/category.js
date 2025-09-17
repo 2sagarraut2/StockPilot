@@ -1,23 +1,30 @@
-const { request } = require("express");
 const mongoose = require("mongoose");
 
 const categorySchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      require: true,
-      unique: true,
+      required: true,
+      uppercase: true,
+      trim: true,
     },
     description: {
       type: String,
-      require: true,
+      required: true,
+      trim: true,
     },
     active: {
       type: Boolean,
-      require: true,
+      required: true,
+      default: true,
     },
   },
   { timestamps: true }
+);
+
+categorySchema.index(
+  { name: 1 },
+  { unique: true, partialFilterExpression: { active: true } }
 );
 
 module.exports = mongoose.model("Category", categorySchema);
