@@ -5,17 +5,20 @@ const mongoose = require("mongoose");
 
 const productRouter = express.Router();
 
-productRouter.get("/products/get", async (req, res) => {
+productRouter.get("/product/get", async (req, res) => {
   try {
-    const products = await Product.find({ active: true });
+    const products = await Product.find({ active: true }).populate({
+      path: "category",
+      select: "name",
+    });
 
     if (!products) {
-      throw new Error("No products found!");
+      throw new Error("Product not found!");
     }
 
     return res.send({
       message: "Products fetched successfully",
-      products: products,
+      data: products,
     });
   } catch (err) {
     console.log(err);
@@ -25,7 +28,7 @@ productRouter.get("/products/get", async (req, res) => {
   }
 });
 
-productRouter.get("/products/get/:product_id", async (req, res) => {
+productRouter.get("/product/get/:product_id", async (req, res) => {
   try {
     const { product_id } = req.params;
     const isValid = mongoose.Types.ObjectId.isValid(product_id);
@@ -37,13 +40,16 @@ productRouter.get("/products/get/:product_id", async (req, res) => {
     const product = await Product.findOne({
       _id: product_id,
       active: true,
-    }).populate("category");
+    }).populate({ path: "category", select: "name" });
 
     if (!product) {
-      throw new Error("No products found!");
+      throw new Error("Product not found!");
     }
 
-    return res.json({ message: "Product fetched successfully!", product });
+    return res.json({
+      message: "Product fetched successfully!",
+      data: product,
+    });
   } catch (err) {
     console.log(err);
     res.status(400).json({
@@ -52,7 +58,7 @@ productRouter.get("/products/get/:product_id", async (req, res) => {
   }
 });
 
-productRouter.post("/products/add", async (req, res) => {
+productRouter.post("/product/add", async (req, res) => {
   try {
     const { name, description, categoryId, price, sku } = req.body;
 

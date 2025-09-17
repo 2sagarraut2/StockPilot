@@ -1,7 +1,55 @@
 const express = require("express");
+const monggose = require("mongoose");
 const Category = require("../models/category");
 
 const categoryRouter = express.Router();
+
+categoryRouter.get("/category", async (req, res) => {
+  try {
+    const categories = await Category.find({ active: true });
+
+    if (categories.length === 0) {
+      throw new Error("Category not found");
+    }
+
+    return res.send({
+      message: "Categories fetched successfully",
+      data: products,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      error: "An unexpected error occurred. Please try again later. " + err,
+    });
+  }
+});
+
+categoryRouter.get("/category/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    const isValid = mongoose.Types.ObjectId.isValid(categoryId);
+    if (!isValid) {
+      throw new Error("Invalid category id");
+    }
+
+    const category = await Category.findOne({ _id: categoryId, active: true });
+
+    if (!category) {
+      throw new Error("Category not found");
+    }
+
+    return res.json({
+      message: "Category retrieved successfully!",
+      data: category,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      error: "An unexpected error occurred. Please try again later. " + err,
+    });
+  }
+});
 
 categoryRouter.post("/category/add", async (req, res) => {
   try {
