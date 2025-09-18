@@ -7,12 +7,14 @@ const productRouter = express.Router();
 
 productRouter.get("/product/get", async (req, res) => {
   try {
-    const products = await Product.find({ active: true }).populate({
-      path: "category",
-      select: "name",
-    });
+    const products = await Product.find({ active: true })
+      .select("name description categoryId price sku")
+      .populate({
+        path: "category",
+        select: "name",
+      });
 
-    if (!products) {
+    if (products.length === 0) {
       throw new Error("Product not found!");
     }
 
@@ -28,7 +30,7 @@ productRouter.get("/product/get", async (req, res) => {
   }
 });
 
-productRouter.get("/product/get/:product_id", async (req, res) => {
+productRouter.get("/product/:product_id", async (req, res) => {
   try {
     const { product_id } = req.params;
     const isValid = mongoose.Types.ObjectId.isValid(product_id);
@@ -40,7 +42,9 @@ productRouter.get("/product/get/:product_id", async (req, res) => {
     const product = await Product.findOne({
       _id: product_id,
       active: true,
-    }).populate({ path: "category", select: "name" });
+    })
+      .select("name description categoryId price sku")
+      .populate({ path: "category", select: "name" });
 
     if (!product) {
       throw new Error("Product not found!");

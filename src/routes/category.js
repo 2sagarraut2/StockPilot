@@ -1,12 +1,14 @@
 const express = require("express");
-const monggose = require("mongoose");
+const mongoose = require("mongoose");
 const Category = require("../models/category");
 
 const categoryRouter = express.Router();
 
-categoryRouter.get("/category", async (req, res) => {
+categoryRouter.get("/category/get", async (req, res) => {
   try {
-    const categories = await Category.find({ active: true });
+    const categories = await Category.find({ active: true }).select(
+      "name description"
+    );
 
     if (categories.length === 0) {
       throw new Error("Category not found");
@@ -14,7 +16,7 @@ categoryRouter.get("/category", async (req, res) => {
 
     return res.send({
       message: "Categories fetched successfully",
-      data: products,
+      data: categories,
     });
   } catch (err) {
     console.log(err);
@@ -33,7 +35,10 @@ categoryRouter.get("/category/:categoryId", async (req, res) => {
       throw new Error("Invalid category id");
     }
 
-    const category = await Category.findOne({ _id: categoryId, active: true });
+    const category = await Category.findOne({
+      _id: categoryId,
+      active: true,
+    }).select("name description");
 
     if (!category) {
       throw new Error("Category not found");
