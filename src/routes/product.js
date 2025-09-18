@@ -1,6 +1,7 @@
 const express = require("express");
 const Product = require("../models/product");
 const Category = require("../models/category");
+const Stock = require("../models/stock");
 const mongoose = require("mongoose");
 
 const productRouter = express.Router();
@@ -68,6 +69,13 @@ productRouter.post("/product/add", async (req, res) => {
 
     if (!name || !description || !categoryId || !price || !sku) {
       return res.status(400).json({ error: "All fields are required" });
+    }
+
+    if (name.length < 3 || description.length < 3) {
+      return res.status(400).json({
+        error:
+          "Product name and description must each be at least 3 characters long.",
+      });
     }
 
     // TODO: Check if product name already exists
@@ -218,6 +226,51 @@ productRouter.patch("/product/:productId", async (req, res) => {
     console.log(err);
     res.status(500).json({
       error: "An unexpected error occurred. Please try again later. " + err,
+    });
+  }
+});
+
+productRouter.patch("/product/full-update/:productId", async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { productId } = req.params;
+    const { price, description, category, quantity } = req.body;
+
+    // Update product
+    const product = await Product.findByIdAndUpdate(
+      productId,
+      { price, description, category },
+      { new: true, session }
+    );
+
+    if (!product) throw new Error("Product not found");
+
+    // Update stock
+    const stock = await Stock.findOneAndUpdate(
+      { productId: productId },
+      { quantity },
+      { new: true, session }
+    );
+
+    if (!stock) throw new Error("Stock not found");
+
+    // Commit both updates
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.json({
+      message: "Product and stock updated successfully",
+      product,
+      stock,
+    });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+
+    return res.status(500).json({
+      error: "Full update failed. Changes rolled back. " + err.message,
     });
   }
 });

@@ -17,9 +17,11 @@ app.use(cookieParser());
 
 const productRouter = require("./routes/product");
 const categoryRouter = require("./routes/category");
+const stockRouter = require("./routes/stock");
 
 app.use("/", productRouter);
 app.use("/", categoryRouter);
+app.use("/", stockRouter);
 
 connectDB()
   .then(() => {

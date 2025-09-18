@@ -26,12 +26,6 @@ It focuses on clean APIs, production-ready code, and scalability — perfect for
 - `PATCH /product/:id` → Update product
 - `DELETE /product/delete/:id` → Update product
 
-### 📌 Stock
-
-- `GET /product/stock` → Get all stock entries
-- `POST /product/stock` → Add stock for a product
-- `PATCH /product/stock/:id` → Update stock
-
 ### 📌 Categories
 
 - `GET /category` → Get all categories
@@ -39,6 +33,12 @@ It focuses on clean APIs, production-ready code, and scalability — perfect for
 - `POST /category/add` → Create new category
 - `PATCH /category/:id` → Update category
 - `DELETE /category/delete/:id` → Update category
+
+### 📌 Stock
+
+- `GET /stock` → Get all stock entries
+- `POST /stock` → Add stock for a product
+- `PATCH /stock/:id` → Update stock
 
 ---
 

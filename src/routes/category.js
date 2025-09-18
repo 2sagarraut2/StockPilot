@@ -60,6 +60,10 @@ categoryRouter.post("/category/add", async (req, res) => {
   try {
     const { name, description } = req.body;
 
+    if (!name || !description) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
     if (name.length < 3 || description.length < 3) {
       return res.status(400).json({
         error:
