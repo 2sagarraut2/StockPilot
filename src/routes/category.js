@@ -4,7 +4,7 @@ const Category = require("../models/category");
 
 const categoryRouter = express.Router();
 
-categoryRouter.get("/category/get", async (req, res) => {
+categoryRouter.get("/category", async (req, res) => {
   try {
     const categories = await Category.find({ active: true }).select(
       "name description"
@@ -82,6 +82,90 @@ categoryRouter.post("/category/add", async (req, res) => {
     await category.save();
 
     return res.json({ message: "Category added successfully", category });
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      error: "An unexpected error occurred. Please try again later. " + err,
+    });
+  }
+});
+
+categoryRouter.delete("/category/delete/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    const isValid = mongoose.Types.ObjectId.isValid(categoryId);
+    if (!isValid) {
+      throw new Error("Invalid category id");
+    }
+
+    const deletedCategory = await Category.findByIdAndUpdate(
+      categoryId,
+      { active: false },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!deletedCategory) {
+      throw new Error("Category not found");
+    }
+
+    return res.json({ message: "Category deleted successfully" });
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      error: "An unexpected error occurred. Please try again later. " + err,
+    });
+  }
+});
+
+categoryRouter.patch("/category/:categoryId", async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    const isValid = mongoose.Types.ObjectId.isValid(categoryId);
+    if (!isValid) {
+      throw new Error("Invalid category id");
+    }
+
+    const allowedEditFields = ["description"];
+
+    const keys = Object.keys(req.body);
+
+    if (keys.length === 0) {
+      throw new Error("No fields provided to update");
+    }
+
+    const isEditAllowed =
+      keys.length > 0 &&
+      keys.every((field) => allowedEditFields.includes(field));
+
+    if (!isEditAllowed) {
+      throw new Error("Update not allowed");
+    }
+
+    const updatedCategory = await Category.findOneAndUpdate(
+      {
+        _id: categoryId,
+        active: true,
+      },
+      { description: req.body.description },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedCategory) {
+      throw new Error("Category not found");
+    }
+
+    return res.json({
+      message: "Category updated successfully",
+      data: updatedCategory,
+    });
   } catch (err) {
     console.log(err);
     return res.status(400).json({

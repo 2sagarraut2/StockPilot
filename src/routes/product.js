@@ -5,7 +5,7 @@ const mongoose = require("mongoose");
 
 const productRouter = express.Router();
 
-productRouter.get("/product/get", async (req, res) => {
+productRouter.get("/product", async (req, res) => {
   try {
     const products = await Product.find({ active: true })
       .select("name description categoryId price sku")
@@ -129,6 +129,90 @@ productRouter.post("/product/add", async (req, res) => {
     return res.status(201).json({
       message: "Product added successfully",
       product,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      error: "An unexpected error occurred. Please try again later. " + err,
+    });
+  }
+});
+
+productRouter.delete("/product/delete/:productId", async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const isValid = mongoose.Types.ObjectId.isValid(productId);
+    if (!isValid) {
+      throw new Error("Invalid product id");
+    }
+
+    const deletedProduct = await Product.findByIdAndUpdate(
+      productId,
+      { active: false },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!deletedProduct) {
+      throw new Error("Product not found");
+    }
+
+    return res.json({ message: "Product updated" });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      error: "An unexpected error occurred. Please try again later. " + err,
+    });
+  }
+});
+
+productRouter.patch("/product/:productId", async (req, res) => {
+  try {
+    const { productId } = req.params;
+
+    const isValid = mongoose.Types.ObjectId.isValid(productId);
+
+    if (!isValid) {
+      throw new Error("Invalid product id");
+    }
+
+    const allowedEditFields = ["description", "category", "price"];
+
+    const keys = Object.keys(req.body);
+
+    if (keys.length === 0) {
+      throw new Error("No fields provided to update");
+    }
+
+    const isUpdateAllowed =
+      keys.length > 0 &&
+      keys.every((field) => allowedEditFields.includes(field));
+
+    if (!isUpdateAllowed) {
+      throw new Error("Update not allowed");
+    }
+
+    const isCategory = mongoose.Types.ObjectId.isValid(req.body.category);
+    if (!isCategory) {
+      throw new Error("Category doesn't exists, please create one");
+    }
+
+    const updatedProduct = await Product.findOneAndUpdate(
+      { _id: productId, active: true },
+      { $set: req.body },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProduct) {
+      throw new Error("Product not found");
+    }
+
+    return res.json({
+      message: "Product update successful",
+      data: updatedProduct,
     });
   } catch (err) {
     console.log(err);

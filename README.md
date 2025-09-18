@@ -20,10 +20,11 @@ It focuses on clean APIs, production-ready code, and scalability — perfect for
 
 ### 📌 Products
 
-- `GET /product/get` → Get all products
+- `GET /product` → Get all products
 - `GET /product/:id` → Get product by ID
 - `POST /product/add` → Create new product
 - `PATCH /product/:id` → Update product
+- `DELETE /product/delete/:id` → Update product
 
 ### 📌 Stock
 
@@ -37,6 +38,7 @@ It focuses on clean APIs, production-ready code, and scalability — perfect for
 - `GET /category/:id` → Get category by ID
 - `POST /category/add` → Create new category
 - `PATCH /category/:id` → Update category
+- `DELETE /category/delete/:id` → Update category
 
 ---
 
