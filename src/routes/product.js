@@ -146,6 +146,7 @@ productRouter.post("/product/add", async (req, res) => {
   }
 });
 
+// Delete one product
 productRouter.delete("/product/delete/:productId", async (req, res) => {
   try {
     const { productId } = req.params;
@@ -163,6 +164,9 @@ productRouter.delete("/product/delete/:productId", async (req, res) => {
         runValidators: true,
       }
     );
+
+    // TODO: Deleting product will delete its corresponding stock entry as well
+    // If Stock is > 0 then don't allow product delete show warning - Product inStock cannot be deleted
 
     if (!deletedProduct) {
       throw new Error("Product not found");
@@ -238,6 +242,12 @@ productRouter.patch("/product/full-update/:productId", async (req, res) => {
     const { productId } = req.params;
     const { price, description, category, quantity } = req.body;
 
+    if (!price || !description || !category || !quantity) {
+      throw new Error(
+        "Price, description, category and quantity are required fields"
+      );
+    }
+
     // Update product
     const product = await Product.findByIdAndUpdate(
       productId,
@@ -249,7 +259,7 @@ productRouter.patch("/product/full-update/:productId", async (req, res) => {
 
     // Update stock
     const stock = await Stock.findOneAndUpdate(
-      { productId: productId },
+      { product: productId },
       { quantity },
       { new: true, session }
     );
@@ -262,9 +272,13 @@ productRouter.patch("/product/full-update/:productId", async (req, res) => {
 
     return res.json({
       message: "Product and stock updated successfully",
-      product,
-      stock,
     });
+
+    // return res.json({
+    //   message: "Product and stock updated successfully",
+    //   product,
+    //   stock,
+    // });
   } catch (err) {
     await session.abortTransaction();
     session.endSession();

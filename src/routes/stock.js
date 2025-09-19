@@ -8,7 +8,14 @@ const stockRouter = express.Router();
 
 stockRouter.get("/stock", async (req, res) => {
   try {
-    const stockOfProducts = await Stock.find({ active: true });
+    const stockOfProducts = await Stock.find({ active: true }).populate({
+      path: "product",
+      select: "name description price sku",
+      populate: {
+        path: "category",
+        select: "name",
+      },
+    });
 
     if (stockOfProducts.length === 0) {
       throw new Error("No stock found");
@@ -52,8 +59,18 @@ stockRouter.post("/stock", async (req, res) => {
         .json({ error: "Quantity cannot be less than zero" });
     }
 
+    // TODO: Check if stock already exists if yes not allow to add instead ask for update
+    const existing_stock = await Stock.findOne({
+      product: productId,
+      active: true,
+    });
+
+    if (existing_stock) {
+      throw new Error("Product stock already exists, please update");
+    }
+
     const stockToInsert = new Stock({
-      productId,
+      product: productId,
       quantity,
       active: 1,
     });
@@ -69,6 +86,46 @@ stockRouter.post("/stock", async (req, res) => {
   }
 });
 
-stockRouter.patch("/stock/:stockId", async (req, res) => {});
+stockRouter.patch("/stock/:stockId", async (req, res) => {
+  try {
+    const { stockId } = req.params;
+    console.log("This code");
+
+    const isValid = mongoose.Types.ObjectId.isValid(stockId);
+    if (!isValid) {
+      throw new Error("Invalid stock id provided");
+    }
+
+    const allowedEditFields = ["quantity"];
+
+    const keys = Object.keys(req.body);
+
+    const isEditAllowed = keys.every((field) =>
+      allowedEditFields.includes(field)
+    );
+    if (!isEditAllowed) {
+      throw new Error("Update not allowed");
+    }
+
+    const updatedStock = await Stock.findOneAndUpdate(
+      { _id: stockId, active: true },
+      { quantity: req.body.quantity },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    return res.json({
+      message: "Stock updated successfully",
+      data: updatedStock,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      error: "An unexpected error occurred. Please try again later. " + err,
+    });
+  }
+});
 
 module.exports = stockRouter;
