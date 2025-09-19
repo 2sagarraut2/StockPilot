@@ -8,14 +8,24 @@ const stockRouter = express.Router();
 
 stockRouter.get("/stock", async (req, res) => {
   try {
-    const stockOfProducts = await Stock.find({ active: true }).populate({
-      path: "product",
-      select: "name description price sku",
-      populate: {
-        path: "category",
-        select: "name",
-      },
-    });
+    const page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    limit = limit > 10 ? 10 : limit;
+
+    const skip = (page - 1) * limit;
+
+    const stockOfProducts = await Stock.find({ active: true })
+      .select("quantity")
+      .populate({
+        path: "product",
+        select: "name description price sku",
+        populate: {
+          path: "category",
+          select: "name",
+        },
+      })
+      .skip(skip)
+      .limit(limit);
 
     if (stockOfProducts.length === 0) {
       throw new Error("No stock found");
@@ -89,7 +99,6 @@ stockRouter.post("/stock", async (req, res) => {
 stockRouter.patch("/stock/:stockId", async (req, res) => {
   try {
     const { stockId } = req.params;
-    console.log("This code");
 
     const isValid = mongoose.Types.ObjectId.isValid(stockId);
     if (!isValid) {

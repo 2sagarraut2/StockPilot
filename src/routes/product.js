@@ -8,12 +8,20 @@ const productRouter = express.Router();
 
 productRouter.get("/product", async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    limit = limit > 10 ? 10 : limit;
+
+    const skip = (page - 1) * limit;
+
     const products = await Product.find({ active: true })
       .select("name description categoryId price sku")
       .populate({
         path: "category",
         select: "name",
-      });
+      })
+      .skip(skip)
+      .limit(limit);
 
     if (products.length === 0) {
       throw new Error("Product not found!");
@@ -109,7 +117,6 @@ productRouter.post("/product/add", async (req, res) => {
       return res.status(400).json({ error: "Price should be atleast 1" });
     }
 
-    // TODO: Check if sku is unique
     const existing_sku = await Product.findOne({ sku, active: true });
 
     if (existing_sku) {
@@ -156,6 +163,17 @@ productRouter.delete("/product/delete/:productId", async (req, res) => {
       throw new Error("Invalid product id");
     }
 
+    // TODO: Deleting product will delete its corresponding stock entry as well
+    // If Stock is > 0 then don't allow product delete show warning - Product inStock cannot be deleted
+    const existing_stock = await Stock.findOne({
+      product: productId,
+      active: true,
+    });
+
+    if (existing_stock.quantity > 0) {
+      throw new Error("Product in stock cannot be deleted");
+    }
+
     const deletedProduct = await Product.findByIdAndUpdate(
       productId,
       { active: false },
@@ -164,9 +182,6 @@ productRouter.delete("/product/delete/:productId", async (req, res) => {
         runValidators: true,
       }
     );
-
-    // TODO: Deleting product will delete its corresponding stock entry as well
-    // If Stock is > 0 then don't allow product delete show warning - Product inStock cannot be deleted
 
     if (!deletedProduct) {
       throw new Error("Product not found");

@@ -6,9 +6,16 @@ const categoryRouter = express.Router();
 
 categoryRouter.get("/category", async (req, res) => {
   try {
-    const categories = await Category.find({ active: true }).select(
-      "name description"
-    );
+    const page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    limit = limit > 10 ? 10 : limit;
+
+    const skip = (page - 1) * limit;
+
+    const categories = await Category.find({ active: true })
+      .select("name description")
+      .skip(skip)
+      .limit(limit);
 
     if (categories.length === 0) {
       throw new Error("Category not found");
