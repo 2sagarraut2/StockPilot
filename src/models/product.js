@@ -5,7 +5,6 @@ const productSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
       minlength: 3,
       maxlength: 20,
       trim: true,
@@ -41,6 +40,11 @@ const productSchema = new mongoose.Schema(
     },
   },
   { timestamps: true }
+);
+
+productSchema.index(
+  { name: 1 },
+  { unique: true, partialFilterExpression: { active: true } }
 );
 
 module.exports = mongoose.model("Product", productSchema);

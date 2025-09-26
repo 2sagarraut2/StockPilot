@@ -1,10 +1,11 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const Category = require("../models/category");
+const { userAuth } = require("../middlewares/auth");
 
 const categoryRouter = express.Router();
 
-categoryRouter.get("/category", async (req, res) => {
+categoryRouter.get("/category", userAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
@@ -33,7 +34,7 @@ categoryRouter.get("/category", async (req, res) => {
   }
 });
 
-categoryRouter.get("/category/:categoryId", async (req, res) => {
+categoryRouter.get("/category/:categoryId", userAuth, async (req, res) => {
   try {
     const { categoryId } = req.params;
 
@@ -63,7 +64,7 @@ categoryRouter.get("/category/:categoryId", async (req, res) => {
   }
 });
 
-categoryRouter.post("/category/add", async (req, res) => {
+categoryRouter.post("/category/add", userAuth, async (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -101,38 +102,42 @@ categoryRouter.post("/category/add", async (req, res) => {
   }
 });
 
-categoryRouter.delete("/category/delete/:categoryId", async (req, res) => {
-  try {
-    const { categoryId } = req.params;
+categoryRouter.delete(
+  "/category/delete/:categoryId",
+  userAuth,
+  async (req, res) => {
+    try {
+      const { categoryId } = req.params;
 
-    const isValid = mongoose.Types.ObjectId.isValid(categoryId);
-    if (!isValid) {
-      throw new Error("Invalid category id");
-    }
-
-    const deletedCategory = await Category.findByIdAndUpdate(
-      categoryId,
-      { active: false },
-      {
-        new: true,
-        runValidators: true,
+      const isValid = mongoose.Types.ObjectId.isValid(categoryId);
+      if (!isValid) {
+        throw new Error("Invalid category id");
       }
-    );
 
-    if (!deletedCategory) {
-      throw new Error("Category not found");
+      const deletedCategory = await Category.findByIdAndUpdate(
+        categoryId,
+        { active: false },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+
+      if (!deletedCategory) {
+        throw new Error("Category not found");
+      }
+
+      return res.json({ message: "Category deleted successfully" });
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        error: "An unexpected error occurred. Please try again later. " + err,
+      });
     }
-
-    return res.json({ message: "Category deleted successfully" });
-  } catch (err) {
-    console.log(err);
-    return res.status(400).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
-    });
   }
-});
+);
 
-categoryRouter.patch("/category/:categoryId", async (req, res) => {
+categoryRouter.patch("/category/:categoryId", userAuth, async (req, res) => {
   try {
     const { categoryId } = req.params;
 

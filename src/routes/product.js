@@ -3,10 +3,11 @@ const Product = require("../models/product");
 const Category = require("../models/category");
 const Stock = require("../models/stock");
 const mongoose = require("mongoose");
+const { userAuth } = require("../middlewares/auth");
 
 const productRouter = express.Router();
 
-productRouter.get("/product", async (req, res) => {
+productRouter.get("/product", userAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
@@ -23,6 +24,8 @@ productRouter.get("/product", async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const total = await Product.countDocuments();
+
     if (products.length === 0) {
       throw new Error("Product not found!");
     }
@@ -30,6 +33,7 @@ productRouter.get("/product", async (req, res) => {
     return res.send({
       message: "Products fetched successfully",
       data: products,
+      total,
     });
   } catch (err) {
     console.log(err);
@@ -39,7 +43,7 @@ productRouter.get("/product", async (req, res) => {
   }
 });
 
-productRouter.get("/product/:product_id", async (req, res) => {
+productRouter.get("/product/:product_id", userAuth, async (req, res) => {
   try {
     const { product_id } = req.params;
     const isValid = mongoose.Types.ObjectId.isValid(product_id);
@@ -71,7 +75,7 @@ productRouter.get("/product/:product_id", async (req, res) => {
   }
 });
 
-productRouter.post("/product/add", async (req, res) => {
+productRouter.post("/product/add", userAuth, async (req, res) => {
   try {
     const { name, description, categoryId, price, sku } = req.body;
 
@@ -136,7 +140,7 @@ productRouter.post("/product/add", async (req, res) => {
       await product.save();
     } catch (err) {
       if (err.code === 11000) {
-        return res.status(409).json({ error: "SKU already exists" });
+        return res.status(409).json({ error: "Something went wrong" });
       }
       throw err;
     }
@@ -154,49 +158,53 @@ productRouter.post("/product/add", async (req, res) => {
 });
 
 // Delete one product
-productRouter.delete("/product/delete/:productId", async (req, res) => {
-  try {
-    const { productId } = req.params;
+productRouter.delete(
+  "/product/delete/:productId",
+  userAuth,
+  async (req, res) => {
+    try {
+      const { productId } = req.params;
 
-    const isValid = mongoose.Types.ObjectId.isValid(productId);
-    if (!isValid) {
-      throw new Error("Invalid product id");
-    }
-
-    // TODO: Deleting product will delete its corresponding stock entry as well
-    // If Stock is > 0 then don't allow product delete show warning - Product inStock cannot be deleted
-    const existing_stock = await Stock.findOne({
-      product: productId,
-      active: true,
-    });
-
-    if (existing_stock.quantity > 0) {
-      throw new Error("Product in stock cannot be deleted");
-    }
-
-    const deletedProduct = await Product.findByIdAndUpdate(
-      productId,
-      { active: false },
-      {
-        new: true,
-        runValidators: true,
+      const isValid = mongoose.Types.ObjectId.isValid(productId);
+      if (!isValid) {
+        throw new Error("Invalid product id");
       }
-    );
 
-    if (!deletedProduct) {
-      throw new Error("Product not found");
+      // TODO: Deleting product will delete its corresponding stock entry as well
+      // If Stock is > 0 then don't allow product delete show warning - Product inStock cannot be deleted
+      const existing_stock = await Stock.findOne({
+        product: productId,
+        active: true,
+      });
+
+      if (existing_stock.quantity > 0) {
+        throw new Error("Product in stock cannot be deleted");
+      }
+
+      const deletedProduct = await Product.findByIdAndUpdate(
+        productId,
+        { active: false },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+
+      if (!deletedProduct) {
+        throw new Error("Product not found");
+      }
+
+      return res.json({ message: "Product updated" });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({
+        error: "An unexpected error occurred. Please try again later. " + err,
+      });
     }
-
-    return res.json({ message: "Product updated" });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
-    });
   }
-});
+);
 
-productRouter.patch("/product/:productId", async (req, res) => {
+productRouter.patch("/product/:productId", userAuth, async (req, res) => {
   try {
     const { productId } = req.params;
 
@@ -249,59 +257,63 @@ productRouter.patch("/product/:productId", async (req, res) => {
   }
 });
 
-productRouter.patch("/product/full-update/:productId", async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+productRouter.patch(
+  "/product/full-update/:productId",
+  userAuth,
+  async (req, res) => {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-  try {
-    const { productId } = req.params;
-    const { price, description, category, quantity } = req.body;
+    try {
+      const { productId } = req.params;
+      const { price, description, category, quantity } = req.body;
 
-    if (!price || !description || !category || !quantity) {
-      throw new Error(
-        "Price, description, category and quantity are required fields"
+      if (!price || !description || !category || !quantity) {
+        throw new Error(
+          "Price, description, category and quantity are required fields"
+        );
+      }
+
+      // Update product
+      const product = await Product.findByIdAndUpdate(
+        productId,
+        { price, description, category },
+        { new: true, session }
       );
+
+      if (!product) throw new Error("Product not found");
+
+      // Update stock
+      const stock = await Stock.findOneAndUpdate(
+        { product: productId },
+        { quantity },
+        { new: true, session }
+      );
+
+      if (!stock) throw new Error("Stock not found");
+
+      // Commit both updates
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.json({
+        message: "Product and stock updated successfully",
+      });
+
+      // return res.json({
+      //   message: "Product and stock updated successfully",
+      //   product,
+      //   stock,
+      // });
+    } catch (err) {
+      await session.abortTransaction();
+      session.endSession();
+
+      return res.status(500).json({
+        error: "Full update failed. Changes rolled back. " + err.message,
+      });
     }
-
-    // Update product
-    const product = await Product.findByIdAndUpdate(
-      productId,
-      { price, description, category },
-      { new: true, session }
-    );
-
-    if (!product) throw new Error("Product not found");
-
-    // Update stock
-    const stock = await Stock.findOneAndUpdate(
-      { product: productId },
-      { quantity },
-      { new: true, session }
-    );
-
-    if (!stock) throw new Error("Stock not found");
-
-    // Commit both updates
-    await session.commitTransaction();
-    session.endSession();
-
-    return res.json({
-      message: "Product and stock updated successfully",
-    });
-
-    // return res.json({
-    //   message: "Product and stock updated successfully",
-    //   product,
-    //   stock,
-    // });
-  } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
-
-    return res.status(500).json({
-      error: "Full update failed. Changes rolled back. " + err.message,
-    });
   }
-});
+);
 
 module.exports = productRouter;

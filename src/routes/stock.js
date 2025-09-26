@@ -3,10 +3,11 @@ const Stock = require("../models/stock");
 const Product = require("../models/product");
 const validator = require("validator");
 const mongoose = require("mongoose");
+const { userAuth } = require("../middlewares/auth");
 
 const stockRouter = express.Router();
 
-stockRouter.get("/stock", async (req, res) => {
+stockRouter.get("/stock", userAuth, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
@@ -43,7 +44,7 @@ stockRouter.get("/stock", async (req, res) => {
   }
 });
 
-stockRouter.post("/stock", async (req, res) => {
+stockRouter.post("/stock", userAuth, async (req, res) => {
   try {
     const { productId, quantity } = req.body;
 
@@ -96,7 +97,7 @@ stockRouter.post("/stock", async (req, res) => {
   }
 });
 
-stockRouter.patch("/stock/:stockId", async (req, res) => {
+stockRouter.patch("/stock/:stockId", userAuth, async (req, res) => {
   try {
     const { stockId } = req.params;
 

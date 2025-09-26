@@ -8,7 +8,7 @@ const cookieParser = require("cookie-parser");
 
 app.use(
   cors({
-    origin: "http://localhost:1234",
+    origin: "https://4j647r.csb.app",
     credentials: true,
   })
 );
@@ -18,10 +18,12 @@ app.use(cookieParser());
 const productRouter = require("./routes/product");
 const categoryRouter = require("./routes/category");
 const stockRouter = require("./routes/stock");
+const authRouter = require("./routes/auth");
 
 app.use("/", productRouter);
 app.use("/", categoryRouter);
 app.use("/", stockRouter);
+app.use("/", authRouter);
 
 connectDB()
   .then(() => {
