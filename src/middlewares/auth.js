@@ -9,7 +9,6 @@ const userAuth = async (req, res, next) => {
     }
 
     const decodedObj = await jwt.verify(token, process.env.SECRET_KEY);
-    console.log("came here" + decodedObj, decodedObj.id);
 
     const { _id } = decodedObj;
 

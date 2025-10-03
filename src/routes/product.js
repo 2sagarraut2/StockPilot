@@ -136,6 +136,8 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
       active: true,
     });
 
+    // While adding product add 0 stock for every new addded product
+
     try {
       await product.save();
     } catch (err) {

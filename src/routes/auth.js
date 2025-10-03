@@ -77,7 +77,22 @@ authRouter.post("/login", async (req, res) => {
     }
   } catch (err) {
     res.status(400).send({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: "" + err,
+    });
+    console.log(err);
+  }
+});
+
+authRouter.post("/logout", async (req, res) => {
+  try {
+    res.cookie("token", null, {
+      expires: new Date(Date.now()),
+    });
+
+    res.json({ message: "Logout successful" });
+  } catch (err) {
+    res.status(400).send({
+      error: "" + err,
     });
     console.log(err);
   }

@@ -4,6 +4,7 @@ const Product = require("../models/product");
 const validator = require("validator");
 const mongoose = require("mongoose");
 const { userAuth } = require("../middlewares/auth");
+const stock = require("../models/stock");
 
 const stockRouter = express.Router();
 
@@ -28,6 +29,8 @@ stockRouter.get("/stock", userAuth, async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const total = await Product.countDocuments();
+
     if (stockOfProducts.length === 0) {
       throw new Error("No stock found");
     }
@@ -35,6 +38,7 @@ stockRouter.get("/stock", userAuth, async (req, res) => {
     return res.json({
       message: "Stock retrieved successfully",
       data: stockOfProducts,
+      total,
     });
   } catch (err) {
     console.log(err);
@@ -129,6 +133,45 @@ stockRouter.patch("/stock/:stockId", userAuth, async (req, res) => {
     return res.json({
       message: "Stock updated successfully",
       data: updatedStock,
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      error: "An unexpected error occurred. Please try again later. " + err,
+    });
+  }
+});
+
+stockRouter.get("/stock/search", userAuth, async (req, res) => {
+  try {
+    const searchParams = req.query.query;
+
+    if (!searchParams) {
+      throw new Error("Search text cannot be empty");
+    }
+
+    const stocks = await Stock.find({ active: true })
+      .populate({
+        path: "product",
+        match: {
+          $or: [
+            { name: { $regex: searchParams, $options: "i" } },
+            { sku: { $regex: searchParams, $options: "i" } },
+          ],
+        },
+        populate: {
+          path: "category",
+          select: "name secription",
+        },
+      })
+      .exec();
+
+    const filtered = stocks.filter((s) => s.product !== null);
+
+    return res.json({
+      message: "Data retrieved successfully",
+      data: filtered,
+      total: filtered.length,
     });
   } catch (err) {
     console.log(err);

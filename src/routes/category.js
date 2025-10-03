@@ -18,6 +18,8 @@ categoryRouter.get("/category", userAuth, async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const total = await Category.countDocuments();
+
     if (categories.length === 0) {
       throw new Error("Category not found");
     }
@@ -25,6 +27,7 @@ categoryRouter.get("/category", userAuth, async (req, res) => {
     return res.send({
       message: "Categories fetched successfully",
       data: categories,
+      total,
     });
   } catch (err) {
     console.log(err);

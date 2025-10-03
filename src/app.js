@@ -8,7 +8,7 @@ const cookieParser = require("cookie-parser");
 
 app.use(
   cors({
-    origin: "https://4j647r.csb.app",
+    origin: "http://localhost:1234",
     credentials: true,
   })
 );
