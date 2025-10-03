@@ -38,7 +38,7 @@ productRouter.get("/product", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(400).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -70,7 +70,7 @@ productRouter.get("/product/:product_id", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(400).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -154,7 +154,7 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -200,7 +200,7 @@ productRouter.delete(
     } catch (err) {
       console.log(err);
       res.status(500).json({
-        error: "An unexpected error occurred. Please try again later. " + err,
+        error: err.message || "Something went wrong",
       });
     }
   }
@@ -254,7 +254,7 @@ productRouter.patch("/product/:productId", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });

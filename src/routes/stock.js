@@ -43,7 +43,7 @@ stockRouter.get("/stock", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -96,7 +96,7 @@ stockRouter.post("/stock", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -137,7 +137,7 @@ stockRouter.patch("/stock/:stockId", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -176,7 +176,7 @@ stockRouter.get("/stock/search", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });

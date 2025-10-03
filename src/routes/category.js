@@ -32,7 +32,7 @@ categoryRouter.get("/category", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     return res.status(400).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -62,7 +62,7 @@ categoryRouter.get("/category/:categoryId", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     return res.status(400).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -100,7 +100,7 @@ categoryRouter.post("/category/add", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     return res.status(400).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -134,7 +134,7 @@ categoryRouter.delete(
     } catch (err) {
       console.log(err);
       return res.status(400).json({
-        error: "An unexpected error occurred. Please try again later. " + err,
+        error: err.message || "Something went wrong",
       });
     }
   }
@@ -188,7 +188,7 @@ categoryRouter.patch("/category/:categoryId", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     return res.status(400).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });

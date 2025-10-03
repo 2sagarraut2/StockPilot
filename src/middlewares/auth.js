@@ -23,7 +23,7 @@ const userAuth = async (req, res, next) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 };

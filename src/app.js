@@ -19,11 +19,13 @@ const productRouter = require("./routes/product");
 const categoryRouter = require("./routes/category");
 const stockRouter = require("./routes/stock");
 const authRouter = require("./routes/auth");
+const profileRouter = require("./routes/profile");
 
 app.use("/", productRouter);
 app.use("/", categoryRouter);
 app.use("/", stockRouter);
 app.use("/", authRouter);
+app.use("/", profileRouter);
 
 connectDB()
   .then(() => {

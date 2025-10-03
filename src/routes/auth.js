@@ -11,10 +11,14 @@ authRouter.post("/signup", async (req, res) => {
     validateSignupData(req);
 
     const { firstName, lastName, email, password } = req.body;
+    const updatedEmail = email.toLowerCase();
+    console.log(updatedEmail);
 
     // Check if existing user
-    const existingUser = await User.findOne({ email: email, active: true });
-    console.log("existingUser " + existingUser);
+    const existingUser = await User.findOne({
+      email: updatedEmail,
+      active: true,
+    });
 
     if (existingUser) {
       throw new Error("Existing user please login");
@@ -26,7 +30,7 @@ authRouter.post("/signup", async (req, res) => {
     const user = new User({
       firstName,
       lastName,
-      email,
+      email: updatedEmail,
       password: passwordHash,
       active: true,
     });
@@ -37,7 +41,7 @@ authRouter.post("/signup", async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      error: "An unexpected error occurred. Please try again later. " + err,
+      error: err.message || "Something went wrong",
     });
   }
 });
@@ -45,12 +49,13 @@ authRouter.post("/signup", async (req, res) => {
 authRouter.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
+    const updatedEmail = email.toLowerCase();
 
-    if (!validator.isEmail(email)) {
+    if (!validator.isEmail(updatedEmail)) {
       throw new Error("The email address provided is not valid.");
     }
 
-    const user = await User.findOne({ email: email });
+    const user = await User.findOne({ email: updatedEmail });
 
     if (!user) {
       throw new Error("The email or password you entered is incorrect.");
@@ -77,7 +82,7 @@ authRouter.post("/login", async (req, res) => {
     }
   } catch (err) {
     res.status(400).send({
-      error: "" + err,
+      error: err.message || "Something went wrong",
     });
     console.log(err);
   }
@@ -92,7 +97,7 @@ authRouter.post("/logout", async (req, res) => {
     res.json({ message: "Logout successful" });
   } catch (err) {
     res.status(400).send({
-      error: "" + err,
+      error: err.message || "Something went wrong",
     });
     console.log(err);
   }
