@@ -12,7 +12,10 @@ const userAuth = async (req, res, next) => {
 
     const { _id } = decodedObj;
 
-    const user = await User.findOne({ _id, active: true });
+    const user = await User.findOne({ _id, active: true }).populate(
+      "role",
+      "label"
+    );
 
     if (!user) {
       throw new Error("User not found");

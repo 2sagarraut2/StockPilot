@@ -3,6 +3,8 @@ const { validateSignupData } = require("../utils/validation");
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const validator = require("validator");
+const Role = require("../models/role");
+const role = require("../models/role");
 
 const authRouter = express.Router();
 
@@ -27,17 +29,37 @@ authRouter.post("/signup", async (req, res) => {
     // Encrypt the password
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // find out the reader role
+    const role = await Role.findOne({ label: "reader", active: true });
+
+    // Create user
     const user = new User({
       firstName,
       lastName,
       email: updatedEmail,
       password: passwordHash,
+      role: role._id,
       active: true,
     });
 
-    await user.save();
+    const addedUser = await user.save();
 
-    return res.json({ message: "User created successfully" });
+    const populatedUser = await User.findById(addedUser._id).populate(
+      "role",
+      "label"
+    );
+
+    const userDataToSend = {
+      firstName: populatedUser.firstName,
+      lastName: populatedUser.lastName,
+      email: populatedUser.email,
+      role: populatedUser.role, // get the role label
+    };
+
+    return res.json({
+      message: "User created successfully",
+      data: userDataToSend,
+    });
   } catch (err) {
     console.log(err);
     res.status(500).json({
@@ -55,7 +77,10 @@ authRouter.post("/login", async (req, res) => {
       throw new Error("The email address provided is not valid.");
     }
 
-    const user = await User.findOne({ email: updatedEmail });
+    const user = await User.findOne({ email: updatedEmail }).populate(
+      "role",
+      "label"
+    );
 
     if (!user) {
       throw new Error("The email or password you entered is incorrect.");
@@ -74,6 +99,7 @@ authRouter.post("/login", async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        role: user.role,
       };
 
       return res.json({ message: "Login successful", data: userDataToSend });

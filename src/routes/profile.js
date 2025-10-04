@@ -9,11 +9,12 @@ const profileRouter = express.Router();
 
 profileRouter.get("/profile/view", userAuth, async (req, res) => {
   try {
-    const { firstName, lastName, email } = req.user;
+    const { firstName, lastName, email, role } = req.user;
     const loggedInUser = {
       firstName,
       lastName,
       email,
+      role,
     };
 
     return res.json({
