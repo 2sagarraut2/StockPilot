@@ -21,24 +21,25 @@ It focuses on clean APIs, production-ready code, and scalability — perfect for
 ### 📌 Products
 
 - `GET /product` → Get all products
-- `GET /product/:id` → Get product by ID
+- `GET /product/:productId` → Get product by ID
 - `POST /product/add` → Create new product
-- `PATCH /product/:id` → Update product
-- `DELETE /product/delete/:id` → Update product
+- `PATCH /product/:productId` → Update product
+- `DELETE /product/delete/:productId` → Update product
 
 ### 📌 Categories
 
 - `GET /category` → Get all categories
 - `GET /category/:id` → Get category by ID
 - `POST /category/add` → Create new category
-- `PATCH /category/:id` → Update category
-- `DELETE /category/delete/:id` → Update category
+- `PATCH /category/:categoryId` → Update category
+- `DELETE /category/delete/:categoryId` → Update category
 
 ### 📌 Stock
 
 - `GET /stock` → Get all stock entries
 - `POST /stock` → Add stock for a product
-- `PATCH /stock/:id` → Update stock
+- `PATCH /stock/:stockId` → Update stock
+- `GET /stock/search` → Search stock
 
 ---
 

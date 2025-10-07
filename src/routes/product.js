@@ -76,38 +76,38 @@ productRouter.get("/product/:product_id", userAuth, async (req, res) => {
 });
 
 productRouter.post("/product/add", userAuth, async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
     const { name, description, categoryId, price, sku } = req.body;
 
     if (!name || !description || !categoryId || !price || !sku) {
-      return res.status(400).json({ error: "All fields are required" });
+      throw new Error("All fields are required");
     }
 
     if (name.length < 3 || description.length < 3) {
-      return res.status(400).json({
-        error:
-          "Product name and description must each be at least 3 characters long.",
-      });
+      throw new Error(
+        "Product name and description must each be at least 3 characters long."
+      );
     }
 
-    // TODO: Check if product name already exists
+    // Check if product name already exists
     const existing_product = await Product.findOne({
       name: name,
       active: true,
     });
 
     if (existing_product) {
-      return res.status(400).json({ message: "Product already exists" });
+      throw new Error("Product already exists");
     }
 
     if (name.length < 3 || description.length < 3) {
-      return res.status(400).json({
-        error:
-          "Product name and description must each be at least 3 characters long.",
-      });
+      throw new Error(
+        "Product name and description must each be at least 3 characters long."
+      );
     }
 
-    // TODO: Check if category exists
+    // Check if category exists
     const existing_category = await Category.findOne({
       _id: categoryId,
       active: true,
@@ -124,7 +124,7 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
     const existing_sku = await Product.findOne({ sku, active: true });
 
     if (existing_sku) {
-      return res.status(409).json({ message: "SKU should be unique" });
+      throw new Error("SKU should be unique");
     }
 
     const product = new Product({
@@ -137,9 +137,15 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
     });
 
     // While adding product add 0 stock for every new addded product
+    const stockToInsert = new Stock({
+      product: product._id,
+      quantity: 0,
+      active: true,
+    });
 
     try {
       await product.save();
+      const newStock = await stockToInsert.save();
     } catch (err) {
       if (err.code === 11000) {
         return res.status(409).json({ error: "Something went wrong" });
@@ -147,11 +153,15 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
       throw err;
     }
 
-    return res.status(201).json({
+    await session.commitTransaction();
+    session.endSession();
+    return res.status(200).json({
       message: "Product added successfully",
-      product,
+      data: product,
     });
   } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
     console.log(err);
     res.status(500).json({
       error: err.message || "Something went wrong",
@@ -172,7 +182,6 @@ productRouter.delete(
         throw new Error("Invalid product id");
       }
 
-      // TODO: Deleting product will delete its corresponding stock entry as well
       // If Stock is > 0 then don't allow product delete show warning - Product inStock cannot be deleted
       const existing_stock = await Stock.findOne({
         product: productId,
@@ -192,11 +201,20 @@ productRouter.delete(
         }
       );
 
+      const deletedStock = await Stock.findOneAndUpdate(
+        { product: productId },
+        { active: false },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+
       if (!deletedProduct) {
         throw new Error("Product not found");
       }
 
-      return res.json({ message: "Product updated" });
+      return res.json({ message: "Product deleted" });
     } catch (err) {
       console.log(err);
       res.status(500).json({
@@ -206,58 +224,100 @@ productRouter.delete(
   }
 );
 
-productRouter.patch("/product/:productId", userAuth, async (req, res) => {
-  try {
-    const { productId } = req.params;
+productRouter.patch(
+  "/product/update/:productId",
+  userAuth,
+  async (req, res) => {
+    try {
+      const { productId } = req.params;
+      const { name, description, category, price, sku } = req.body;
 
-    const isValid = mongoose.Types.ObjectId.isValid(productId);
+      const isValid = mongoose.Types.ObjectId.isValid(productId);
 
-    if (!isValid) {
-      throw new Error("Invalid product id");
+      if (!isValid) {
+        throw new Error("Invalid product id");
+      }
+
+      const allowedEditFields = [
+        "name",
+        "description",
+        "category",
+        "price",
+        "sku",
+      ];
+
+      const keys = Object.keys(req.body);
+
+      if (keys.length === 0) {
+        throw new Error("No fields provided to update");
+      }
+
+      const isUpdateAllowed =
+        keys.length > 0 &&
+        keys.every((field) => allowedEditFields.includes(field));
+
+      if (!isUpdateAllowed) {
+        throw new Error("Update not allowed");
+      }
+
+      // Check if product name already exists
+      const existing_product = await Product.findOne({
+        name: name,
+        active: true,
+      });
+
+      if (existing_product) {
+        throw new Error("Product already exists");
+      }
+
+      const isCategory = mongoose.Types.ObjectId.isValid(req.body.category);
+      if (!isCategory) {
+        throw new Error("Category doesn't exists, please create one");
+      }
+
+      // Check if category exists
+      const existing_category = await Category.findOne({
+        _id: category,
+        active: true,
+      });
+
+      if (!existing_category) {
+        throw new Error("Category does not exists, please create one");
+      }
+
+      // Check if sku exists
+      // Check if category exists
+      const existing_sku = await Product.findOne({
+        sku: sku,
+        active: true,
+      });
+
+      if (existing_sku) {
+        throw new Error("SKU should be unique");
+      }
+
+      const updatedProduct = await Product.findOneAndUpdate(
+        { _id: productId, active: true },
+        { $set: req.body },
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedProduct) {
+        throw new Error("Product not found");
+      }
+
+      return res.json({
+        message: "Product update successful",
+        data: updatedProduct,
+      });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({
+        error: err.message || "Something went wrong",
+      });
     }
-
-    const allowedEditFields = ["description", "category", "price"];
-
-    const keys = Object.keys(req.body);
-
-    if (keys.length === 0) {
-      throw new Error("No fields provided to update");
-    }
-
-    const isUpdateAllowed =
-      keys.length > 0 &&
-      keys.every((field) => allowedEditFields.includes(field));
-
-    if (!isUpdateAllowed) {
-      throw new Error("Update not allowed");
-    }
-
-    const isCategory = mongoose.Types.ObjectId.isValid(req.body.category);
-    if (!isCategory) {
-      throw new Error("Category doesn't exists, please create one");
-    }
-
-    const updatedProduct = await Product.findOneAndUpdate(
-      { _id: productId, active: true },
-      { $set: req.body },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedProduct) {
-      throw new Error("Product not found");
-    }
-
-    return res.json({
-      message: "Product update successful",
-      data: updatedProduct,
-    });
-  } catch (err) {
-    console.log(err);
-    res.status(500).json({
-      error: err.message || "Something went wrong",
-    });
   }
-});
+);
 
 productRouter.patch(
   "/product/full-update/:productId",

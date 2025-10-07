@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Category = require("../models/category");
 const { userAuth } = require("../middlewares/auth");
+const Product = require("../models/product");
 
 const categoryRouter = express.Router();
 
@@ -82,10 +83,10 @@ categoryRouter.post("/category/add", userAuth, async (req, res) => {
       });
     }
 
-    // TODO: Check if category is unique
+    // Check if category is unique
     const existingCategory = await Category.findOne({ name, active: true });
     if (existingCategory) {
-      return res.status(409).json({ error: "Category already exists" });
+      throw new Error("Category already exists");
     }
 
     const category = new Category({
@@ -117,6 +118,27 @@ categoryRouter.delete(
         throw new Error("Invalid category id");
       }
 
+      // Check if category exists
+      const categoryExists = await Category.findOne({
+        _id: categoryId,
+        active: true,
+      });
+      if (!categoryExists) {
+        throw new Error("Category does not exists");
+      }
+
+      // Check category id has any associated products then dont allow delete
+      const associatedProducts = await Product.findOne({
+        category: categoryId,
+        active: true,
+      });
+
+      if (associatedProducts) {
+        throw new Error(
+          "Products associated to category in stock, cannot delete category"
+        );
+      }
+
       const deletedCategory = await Category.findByIdAndUpdate(
         categoryId,
         { active: false },
@@ -140,57 +162,82 @@ categoryRouter.delete(
   }
 );
 
-categoryRouter.patch("/category/:categoryId", userAuth, async (req, res) => {
-  try {
-    const { categoryId } = req.params;
+categoryRouter.patch(
+  "/category/update/:categoryId",
+  userAuth,
+  async (req, res) => {
+    try {
+      const { categoryId } = req.params;
+      const { name, description } = req.body;
 
-    const isValid = mongoose.Types.ObjectId.isValid(categoryId);
-    if (!isValid) {
-      throw new Error("Invalid category id");
-    }
+      const isValid = mongoose.Types.ObjectId.isValid(categoryId);
+      if (!isValid) {
+        throw new Error("Invalid category id");
+      }
 
-    const allowedEditFields = ["description"];
+      const allowedEditFields = ["name", "description"];
 
-    const keys = Object.keys(req.body);
+      const keys = Object.keys(req.body);
 
-    if (keys.length === 0) {
-      throw new Error("No fields provided to update");
-    }
+      if (keys.length === 0) {
+        throw new Error("No fields provided to update");
+      }
 
-    const isEditAllowed =
-      keys.length > 0 &&
-      keys.every((field) => allowedEditFields.includes(field));
+      const isEditAllowed =
+        keys.length > 0 &&
+        keys.every((field) => allowedEditFields.includes(field));
 
-    if (!isEditAllowed) {
-      throw new Error("Update not allowed");
-    }
+      if (!isEditAllowed) {
+        throw new Error("Update not allowed");
+      }
 
-    const updatedCategory = await Category.findOneAndUpdate(
-      {
+      // Check if category name already exists then down allow
+      const duplicateCategory = await Category.findOne({
+        name: name,
+        active: true,
+      });
+
+      if (duplicateCategory) {
+        throw new Error("Category name should be unique");
+      }
+
+      // Check if category exists
+      const categoryExists = await Category.findOne({
         _id: categoryId,
         active: true,
-      },
-      { description: req.body.description },
-      {
-        new: true,
-        runValidators: true,
+      });
+
+      if (!categoryExists) {
+        throw new Error("Category does not exists");
       }
-    );
 
-    if (!updatedCategory) {
-      throw new Error("Category not found");
+      const updatedCategory = await Category.findOneAndUpdate(
+        {
+          _id: categoryId,
+          active: true,
+        },
+        { name, description },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+
+      if (!updatedCategory) {
+        throw new Error("Category not found");
+      }
+
+      return res.json({
+        message: "Category updated successfully",
+        data: updatedCategory,
+      });
+    } catch (err) {
+      console.log(err);
+      return res.status(400).json({
+        error: err.message || "Something went wrong",
+      });
     }
-
-    return res.json({
-      message: "Category updated successfully",
-      data: updatedCategory,
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(400).json({
-      error: err.message || "Something went wrong",
-    });
   }
-});
+);
 
 module.exports = categoryRouter;

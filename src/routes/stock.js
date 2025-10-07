@@ -31,10 +31,6 @@ stockRouter.get("/stock", userAuth, async (req, res) => {
 
     const total = await Product.countDocuments();
 
-    if (stockOfProducts.length === 0) {
-      throw new Error("No stock found");
-    }
-
     return res.json({
       message: "Stock retrieved successfully",
       data: stockOfProducts,
@@ -43,7 +39,7 @@ stockRouter.get("/stock", userAuth, async (req, res) => {
   } catch (err) {
     console.log(err);
     res.status(500).json({
-      error: err.message || "Something went wrong",
+      error: err.message || "get Product API error",
     });
   }
 });
@@ -74,7 +70,7 @@ stockRouter.post("/stock", userAuth, async (req, res) => {
         .json({ error: "Quantity cannot be less than zero" });
     }
 
-    // TODO: Check if stock already exists if yes not allow to add instead ask for update
+    // Check if stock already exists if yes not allow to add instead ask for update
     const existing_stock = await Stock.findOne({
       product: productId,
       active: true,
@@ -87,7 +83,7 @@ stockRouter.post("/stock", userAuth, async (req, res) => {
     const stockToInsert = new Stock({
       product: productId,
       quantity,
-      active: 1,
+      active: true,
     });
 
     const newStock = await stockToInsert.save();
@@ -101,7 +97,7 @@ stockRouter.post("/stock", userAuth, async (req, res) => {
   }
 });
 
-stockRouter.patch("/stock/:stockId", userAuth, async (req, res) => {
+stockRouter.patch("/stock/update/:stockId", userAuth, async (req, res) => {
   try {
     const { stockId } = req.params;
 
