@@ -19,7 +19,8 @@ categoryRouter.get("/category", userAuth, async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    const total = await Category.countDocuments();
+    // exclude active: false items
+    const total = await Category.countDocuments({ active: true });
 
     if (categories.length === 0) {
       throw new Error("Category not found");

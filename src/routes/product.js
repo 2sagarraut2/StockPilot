@@ -24,7 +24,8 @@ productRouter.get("/product", userAuth, async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    const total = await Product.countDocuments();
+    // exclude active: false items
+    const total = await Product.countDocuments({ active: true });
 
     if (products.length === 0) {
       throw new Error("Product not found!");
@@ -176,10 +177,21 @@ productRouter.delete(
   async (req, res) => {
     try {
       const { productId } = req.params;
+      console.log(productId, "productId");
 
       const isValid = mongoose.Types.ObjectId.isValid(productId);
       if (!isValid) {
         throw new Error("Invalid product id");
+      }
+
+      // Check if product exists
+      const isProductExists = await Product.findOne({
+        _id: productId,
+        active: true,
+      });
+
+      if (!isProductExists) {
+        throw new Error("Product does not exists");
       }
 
       // If Stock is > 0 then don't allow product delete show warning - Product inStock cannot be deleted

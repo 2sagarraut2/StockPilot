@@ -29,7 +29,7 @@ stockRouter.get("/stock", userAuth, async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    const total = await Product.countDocuments();
+    const total = await Product.countDocuments({ active: true });
 
     return res.json({
       message: "Stock retrieved successfully",
