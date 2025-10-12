@@ -4,6 +4,7 @@ const Category = require("../models/category");
 const Stock = require("../models/stock");
 const mongoose = require("mongoose");
 const { userAuth } = require("../middlewares/auth");
+const validator = require("validator");
 
 const productRouter = express.Router();
 
@@ -80,9 +81,9 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { name, description, categoryId, price, sku } = req.body;
+    const { name, description, category, price, sku } = req.body;
 
-    if (!name || !description || !categoryId || !price || !sku) {
+    if (!name || !description || !category || !price || !sku) {
       throw new Error("All fields are required");
     }
 
@@ -92,9 +93,13 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
       );
     }
 
+    if (!validator.isNumeric(price)) {
+      throw new Error("Price must be a number");
+    }
+
     // Check if product name already exists
     const existing_product = await Product.findOne({
-      name: name,
+      name: { $regex: new RegExp(`^${name}$`, "i") },
       active: true,
     });
 
@@ -110,7 +115,7 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
 
     // Check if category exists
     const existing_category = await Category.findOne({
-      _id: categoryId,
+      _id: category,
       active: true,
     });
 

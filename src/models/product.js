@@ -29,7 +29,7 @@ const productSchema = new mongoose.Schema(
     sku: {
       type: String,
       required: true,
-      unique: true,
+      // unique: true,
       uppercase: true,
       trim: true,
     },
@@ -44,6 +44,11 @@ const productSchema = new mongoose.Schema(
 
 productSchema.index(
   { name: 1 },
+  { unique: true, partialFilterExpression: { active: true } }
+);
+
+productSchema.index(
+  { sku: 1 },
   { unique: true, partialFilterExpression: { active: true } }
 );
 

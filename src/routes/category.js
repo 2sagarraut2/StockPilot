@@ -15,7 +15,7 @@ categoryRouter.get("/category", userAuth, async (req, res) => {
     const skip = (page - 1) * limit;
 
     const categories = await Category.find({ active: true })
-      .select("name description")
+      .select("name description createdAt")
       .skip(skip)
       .limit(limit);
 
@@ -85,7 +85,10 @@ categoryRouter.post("/category/add", userAuth, async (req, res) => {
     }
 
     // Check if category is unique
-    const existingCategory = await Category.findOne({ name, active: true });
+    const existingCategory = await Category.findOne({
+      name,
+      active: true,
+    });
     if (existingCategory) {
       throw new Error("Category already exists");
     }

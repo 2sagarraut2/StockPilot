@@ -20,6 +20,7 @@ const categoryRouter = require("./routes/category");
 const stockRouter = require("./routes/stock");
 const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
+const product = require("./models/product");
 
 app.use("/", productRouter);
 app.use("/", categoryRouter);

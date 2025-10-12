@@ -23,7 +23,7 @@ It focuses on clean APIs, production-ready code, and scalability — perfect for
 - `GET /product` → Get all products
 - `GET /product/:productId` → Get product by ID
 - `POST /product/add` → Create new product
-- `PATCH /product/:productId` → Update product
+- `PATCH /product/update/:productId` → Update product
 - `DELETE /product/delete/:productId` → Update product
 
 ### 📌 Categories
@@ -31,14 +31,14 @@ It focuses on clean APIs, production-ready code, and scalability — perfect for
 - `GET /category` → Get all categories
 - `GET /category/:id` → Get category by ID
 - `POST /category/add` → Create new category
-- `PATCH /category/:categoryId` → Update category
+- `PATCH /category/update/:categoryId` → Update category
 - `DELETE /category/delete/:categoryId` → Update category
 
 ### 📌 Stock
 
 - `GET /stock` → Get all stock entries
 - `POST /stock` → Add stock for a product
-- `PATCH /stock/:stockId` → Update stock
+- `PATCH /stock/update/:stockId` → Update stock
 - `GET /stock/search` → Search stock
 
 ---
@@ -52,3 +52,6 @@ It focuses on clean APIs, production-ready code, and scalability — perfect for
 - **Nodemon** – Auto-reload during development
 
 ---
+
+- implement product log feature
+- implement stock log and history feature
