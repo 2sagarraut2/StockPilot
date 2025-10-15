@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const historyPlugin = require("../middlewares/historyPlugin");
 
 const stockSchema = new mongoose.Schema({
   product: {
@@ -24,5 +25,7 @@ const stockSchema = new mongoose.Schema({
   //     required: true,
   //   },
 });
+
+stockSchema.plugin(historyPlugin, { modelName: "Stock" });
 
 module.exports = mongoose.model("Stock", stockSchema);

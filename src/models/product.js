@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const historyPlugin = require("../middlewares/historyPlugin");
 
 const productSchema = new mongoose.Schema(
   {
@@ -39,6 +40,7 @@ const productSchema = new mongoose.Schema(
       default: true,
     },
   },
+
   { timestamps: true }
 );
 
@@ -51,5 +53,7 @@ productSchema.index(
   { sku: 1 },
   { unique: true, partialFilterExpression: { active: true } }
 );
+
+productSchema.plugin(historyPlugin, { modelName: "Product" });
 
 module.exports = mongoose.model("Product", productSchema);

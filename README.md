@@ -55,3 +55,5 @@ It focuses on clean APIs, production-ready code, and scalability — perfect for
 
 - implement product log feature
 - implement stock log and history feature
+- fix log for add feature
+- modified by in log is null

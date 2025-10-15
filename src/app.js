@@ -20,13 +20,14 @@ const categoryRouter = require("./routes/category");
 const stockRouter = require("./routes/stock");
 const authRouter = require("./routes/auth");
 const profileRouter = require("./routes/profile");
-const product = require("./models/product");
+const historyRouter = require("./routes/historyRoute");
 
 app.use("/", productRouter);
 app.use("/", categoryRouter);
 app.use("/", stockRouter);
 app.use("/", authRouter);
 app.use("/", profileRouter);
+app.use("/", historyRouter);
 
 connectDB()
   .then(() => {

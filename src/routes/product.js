@@ -93,9 +93,9 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
       );
     }
 
-    if (!validator.isNumeric(price)) {
-      throw new Error("Price must be a number");
-    }
+    // if (!validator.isNumeric(price)) {
+    //   throw new Error("Price must be a number");
+    // }
 
     // Check if product name already exists
     const existing_product = await Product.findOne({
@@ -149,9 +149,11 @@ productRouter.post("/product/add", userAuth, async (req, res) => {
       active: true,
     });
 
+    product._user = req.user;
+
     try {
-      await product.save();
-      const newStock = await stockToInsert.save();
+      await product.save({ session });
+      await stockToInsert.save({ session });
     } catch (err) {
       if (err.code === 11000) {
         return res.status(409).json({ error: "Something went wrong" });
@@ -224,6 +226,7 @@ productRouter.delete(
         {
           new: true,
           runValidators: true,
+          context: { user: req.user },
         }
       );
 
@@ -247,7 +250,7 @@ productRouter.patch(
   async (req, res) => {
     try {
       const { productId } = req.params;
-      const { name, description, category, price, sku } = req.body;
+      const { name, category, sku } = req.body;
 
       const isValid = mongoose.Types.ObjectId.isValid(productId);
 
@@ -277,46 +280,52 @@ productRouter.patch(
         throw new Error("Update not allowed");
       }
 
-      // Check if product name already exists
-      const existing_product = await Product.findOne({
-        name: name,
-        active: true,
-      });
+      if (name) {
+        // Check if product name already exists
+        const existing_product = await Product.findOne({
+          name: name,
+          active: true,
+        });
 
-      if (existing_product) {
-        throw new Error("Product already exists");
+        if (existing_product) {
+          throw new Error("Product already exists");
+        }
       }
 
-      const isCategory = mongoose.Types.ObjectId.isValid(req.body.category);
-      if (!isCategory) {
-        throw new Error("Category doesn't exists, please create one");
+      if (category) {
+        const isCategory = mongoose.Types.ObjectId.isValid(req.body.category);
+        if (!isCategory) {
+          throw new Error("Category doesn't exists, please create one");
+        }
+
+        // Check if category exists
+        const existing_category = await Category.findOne({
+          _id: category,
+          active: true,
+        });
+
+        if (!existing_category) {
+          throw new Error("Category does not exists, please create one");
+        }
       }
 
-      // Check if category exists
-      const existing_category = await Category.findOne({
-        _id: category,
-        active: true,
-      });
+      if (sku) {
+        // Check if sku exists
+        // Check if category exists
+        const existing_sku = await Product.findOne({
+          sku: sku,
+          active: true,
+        });
 
-      if (!existing_category) {
-        throw new Error("Category does not exists, please create one");
-      }
-
-      // Check if sku exists
-      // Check if category exists
-      const existing_sku = await Product.findOne({
-        sku: sku,
-        active: true,
-      });
-
-      if (existing_sku) {
-        throw new Error("SKU should be unique");
+        if (existing_sku) {
+          throw new Error("SKU should be unique");
+        }
       }
 
       const updatedProduct = await Product.findOneAndUpdate(
         { _id: productId, active: true },
         { $set: req.body },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true, context: { user: req.user } }
       );
 
       if (!updatedProduct) {

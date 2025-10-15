@@ -74,39 +74,28 @@ categoryRouter.post("/category/add", userAuth, async (req, res) => {
     const { name, description } = req.body;
 
     if (!name || !description) {
-      return res.status(400).json({ error: "All fields are required" });
+      throw new Error("All fields are required");
     }
 
     if (name.length < 3 || description.length < 3) {
-      return res.status(400).json({
-        error:
-          "Category name and description must each be at least 3 characters long.",
-      });
+      throw new Error(
+        "Category name and description must each be at least 3 characters long."
+      );
     }
 
-    // Check if category is unique
-    const existingCategory = await Category.findOne({
-      name,
-      active: true,
-    });
-    if (existingCategory) {
-      throw new Error("Category already exists");
-    }
+    const existingCategory = await Category.findOne({ name, active: true });
+    if (existingCategory) throw new Error("Category already exists");
 
-    const category = new Category({
-      name,
-      description,
-      active: true,
-    });
+    const category = new Category({ name, description, active: true });
+
+    category._user = req.user;
 
     await category.save();
 
-    return res.json({ message: "Category added successfully", category });
+    res.json({ message: "Category added successfully", category });
   } catch (err) {
     console.log(err);
-    return res.status(400).json({
-      error: err.message || "Something went wrong",
-    });
+    res.status(400).json({ error: err.message || "Something went wrong" });
   }
 });
 
@@ -149,6 +138,7 @@ categoryRouter.delete(
         {
           new: true,
           runValidators: true,
+          context: { user: req.user },
         }
       );
 
@@ -224,6 +214,7 @@ categoryRouter.patch(
         {
           new: true,
           runValidators: true,
+          context: { user: req.user },
         }
       );
 

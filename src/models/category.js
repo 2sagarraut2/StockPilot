@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const historyPlugin = require("../middlewares/historyPlugin");
 
 const categorySchema = new mongoose.Schema(
   {
@@ -26,5 +27,7 @@ categorySchema.index(
   { name: 1 },
   { unique: true, partialFilterExpression: { active: true } }
 );
+
+categorySchema.plugin(historyPlugin, { modelName: "Category" });
 
 module.exports = mongoose.model("Category", categorySchema);
