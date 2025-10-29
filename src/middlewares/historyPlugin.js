@@ -1,6 +1,29 @@
 const mongoose = require("mongoose");
 const { isEqual } = require("../utils/utils");
 
+// Utility function to compare old vs new document fields (excluding system fields)
+const getChangedFields = (oldDoc = {}, newDoc = {}) => {
+  const changes = [];
+  const ignoredFields = ["_id", "__v", "createdAt", "updatedAt"];
+
+  for (const [key, newValue] of Object.entries(newDoc)) {
+    if (ignoredFields.includes(key)) continue; // skip system fields
+
+    const oldValue = oldDoc ? oldDoc[key] : undefined;
+
+    // Compare deeply using JSON.stringify (simple for plain objects)
+    if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+      changes.push({
+        field: key,
+        from: oldValue ?? null,
+        to: newValue ?? null,
+      });
+    }
+  }
+
+  return changes;
+};
+
 let HistoryModel;
 
 if (!mongoose.models.History) {
@@ -14,7 +37,20 @@ if (!mongoose.models.History) {
         required: true,
       },
       modifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      changes: { type: Object, default: {} },
+      changes: [
+        {
+          field: String,
+          from: mongoose.Schema.Types.Mixed,
+          to: mongoose.Schema.Types.Mixed,
+        },
+      ],
+      reason: { type: String, trim: true },
+      referenceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        refPath: "referenceModel",
+      },
+      referenceModel: { type: String, trim: true },
+      notes: { type: String, trim: true },
       timestamp: { type: Date, default: Date.now },
     },
     { timestamps: true }
@@ -52,22 +88,29 @@ function historyPlugin(schema, options = {}) {
       const userId = this._user?._id || this.$locals?.user?._id || null;
 
       if (this._wasNew) {
+        // ✅ CREATE - save all fields as "to" values
+        const newChanges = getChangedFields({}, this.toObject());
+
         // CREATE
         await HistoryModel.create({
           refModel: modelName,
           refId: this._id,
           action: "CREATE",
           modifiedBy: userId,
-          changes: { created: this.toObject() },
+          changes: newChanges,
         });
       } else {
+        // ✅ UPDATE - compare old and new docs
+        const oldDoc = await this.constructor.findById(this._id).lean();
+        const newChanges = getChangedFields(oldDoc, this.toObject());
+
         // UPDATE
         await HistoryModel.create({
           refModel: modelName,
           refId: this._id,
           action: "UPDATE",
           modifiedBy: userId,
-          changes: { updated: this.toObject() },
+          changes: newChanges,
         });
       }
     } catch (err) {
@@ -93,19 +136,9 @@ function historyPlugin(schema, options = {}) {
       const updatedDoc = await this.model.findById(res._id).lean();
       if (!updatedDoc) return;
 
-      const updateObj = this.getUpdate() || {};
-      const setFields = updateObj.$set || updateObj;
-      const changes = {};
-
-      for (const [key, newVal] of Object.entries(setFields)) {
-        if (["_id", "__v", "createdAt", "updatedAt"].includes(key)) continue;
-        const oldVal = this._oldData[key];
-        if (!isEqual(oldVal, newVal)) {
-          changes[key] = { from: oldVal, to: newVal };
-        }
-      }
-
-      if (Object.keys(changes).length === 0) return;
+      // ✅ Use helper to generate change list
+      const newChanges = getChangedFields(this._oldData, updatedDoc);
+      if (newChanges.length === 0) return;
 
       const userId =
         this.getOptions()?.context?.user?._id ||
@@ -118,7 +151,7 @@ function historyPlugin(schema, options = {}) {
         refId: updatedDoc._id,
         action: "UPDATE",
         modifiedBy: userId,
-        changes,
+        changes: newChanges,
       });
     } catch (err) {
       console.error(`❌ Error saving UPDATE history for ${modelName}:`, err);

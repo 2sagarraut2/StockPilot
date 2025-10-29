@@ -86,6 +86,8 @@ stockRouter.post("/stock", userAuth, async (req, res) => {
       active: true,
     });
 
+    stock._user = req.user;
+
     const newStock = await stockToInsert.save();
 
     return res.json({ message: "Stock added successfully", data: newStock });
@@ -106,6 +108,13 @@ stockRouter.patch("/stock/update/:stockId", userAuth, async (req, res) => {
       throw new Error("Invalid stock id provided");
     }
 
+    // TODO: Check if stock exists
+    const isStockAvailable = await Stock.findById(stockId);
+
+    if (!isStockAvailable) {
+      throw new Error("Stock not available");
+    }
+
     const allowedEditFields = ["quantity"];
 
     const keys = Object.keys(req.body);
@@ -123,6 +132,7 @@ stockRouter.patch("/stock/update/:stockId", userAuth, async (req, res) => {
       {
         new: true,
         runValidators: true,
+        context: { user: req.user },
       }
     );
 
